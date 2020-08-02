@@ -1,9 +1,16 @@
 <?php
 
 $de      = htmlspecialchars( $_GET["debug"] ); 
-$url     = htmlspecialchars( !empty($_GET["url"]) ? $_GET["url"] : 'msx2.org' );
+//$url     = htmlspecialchars( !empty($_GET["url"]) ? $_GET["url"] : 'msx2.org' );
 $pagesize= htmlspecialchars( !empty($_GET["pagesize"]) ? (int) $_GET["pagesize"] : 18 );
 $page    = htmlspecialchars( !empty($_GET["page"]) ? (int) $_GET["page"] : 1 );
+$download= htmlspecialchars( !empty($_GET["download"]) ? $_GET["download"] : 'n' );
+
+
+//url should come from Query String, since it may contain & ? etc.
+$urlserver = $_SERVER['QUERY_STRING'];
+$url=substr( $urlserver, strpos($urlserver,'url=')+4,1000 );
+$url=!empty( $url) ? $url : 'msx2.org';
 
 //------------------------------------------------------
 // DEBUG info
@@ -81,6 +88,13 @@ function correct_url($vurl, $vvalue ) {
   return $vurl2.'/'.$vvalue;
 }
 
+function sanitize($z){
+    $z = strtolower($z);
+    $z = str_replace('&?','-',$z);
+    $z = preg_replace('/[^a-z0-9 -]+/', ' ', $z);
+    $z = str_replace(' ', '-', $z);
+    return trim($z, '-');
+}
 
 
 //------------------------------------------------------
@@ -98,6 +112,66 @@ deb($de, $url );
 //  $url = rtrim($url);
 $url= str_replace(' ','%20' ,$url);
 deb($de, $url );  
+
+
+//------------------------------------------------------
+// DOWNLOADING the file
+//------------------------------------------------------
+
+
+if ($download=='y') {
+//  file_put_contents( "/home/thomas/www/proxygr8/temp/aaa.rar", fopen( $url, 'r'));
+
+
+  $sanurl = sanitize( urldecode($url));
+  $extension = strtolower( substr( $url, strrpos($url,'.',-1)+1, 100 ) );
+
+  echo $url.'<br>';  
+  echo $sanurl.'<br>';
+
+  //if the directory doesn't exist, create it!
+  if ( !file_exists ('temp/'.$sanurl)  ){
+    exec('mkdir temp/'.$sanurl);
+    exec('chmod 777 temp/'.$sanurl);
+  }
+
+  //if the file wasnt loaded, load it.
+  if ( !file_exists ('temp/'.$sanurl.'a.rar') ) {
+  
+
+    if ($extension = 'rar') {  
+      //if the directory doesn't exist, create it!
+    
+      exec("wget $url -O temp/".$sanurl.'/a.rar');
+      //exec("unzip -e temp/".$sanurl);
+    }
+    if ($extension = 'zip') {
+    
+      exec('wget "'.$url.'" -O temp/'.$sanurl.'/a.zip');
+      exec("unzip temp/".$sanurl.'/a.zip -d temp/'.$sanurl);
+    }
+
+  }
+
+//$file_url = 'http://www.myremoteserver.com/file.exe';
+//header('Content-Type: application/octet-stream');
+//header("Content-Transfer-Encoding: Binary"); 
+//header("Content-disposition: attachment; filename=\"" . basename($url) . "\""); 
+//readfile($url); 
+
+
+  echo $url;
+}
+
+
+//------------------------------------------------------
+// NOT downloading
+//------------------------------------------------------
+
+if ($download=='n')
+  {
+
+
 $htmlin = file_get_contents('http://'. $url);
 
 //echo '<a href="'.$url.'proxygr8.php?url=http://msx2.org/DVD_MSX/Jogos/Especiais%20para%20MSX%20Real/ROMS%20Normais/KUNGFU2.ROM">'."Teste 1".'</a><br>';
@@ -200,19 +274,40 @@ foreach ($yourDataArray as &$value) {
    // IF IT'S A FILE:
 
    //TO DO:
+
+   $extension = strtolower( substr( $value[3], strrpos($value[3],'.',-1)+1, 100 ) );
+
    //If extension is ZIP, should UNZIP and save somewhere to be downloaded.
+   if ( in_array($extension, array('rar','zip') ) ) {
+      echo '<a href="'.$serurl.'?download=y&url='. correct_url($url, $value[3]).'">';
+      echo $value[3];
+      echo '</a>';
+    }
+
+
+    // $file = 'http://' . correct_url($url, $value[3]);
+    // copy ( $file, 'temp');
+    
+
+
+
+
+
    //If extension is ROM, create 3 more links (for choosing the Gr8Net MODE)
    //If extension is MP3, let Gr8Net PLAY the song.
- 
-    echo '<a href="http://' . correct_url($url, $value[3]) .'">';
-    echo $value[3];
-    echo '</a>';
-  }
+    
+    else { 
+      echo '<a href="http://' . correct_url($url, $value[3]) .'">';
+      echo $value[3];
+      echo '</a>';
+   }  
+}
 
   echo  '<br>';
 
 }
 
+}
 
 ?>
 </html>
