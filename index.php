@@ -136,29 +136,30 @@ if ($download=='y') {
   }
 
   //if the file wasnt loaded, load it.
-  if ( !file_exists ('temp/'.$sanurl.'a.rar') ) {
+  if ( !file_exists ('temp/'.$sanurl.'a.rar') 
+       or
+       !file_exists ('temp/'.$sanurl.'a.rom')   
+  ) {
   
-
-    if ($extension = 'rar') {  
-      //if the directory doesn't exist, create it!
-    
+    if ($extension = 'rar') {
       exec("wget $url -O temp/".$sanurl.'/a.rar');
       //exec("unzip -e temp/".$sanurl);
     }
     if ($extension = 'zip') {
-    
       exec('wget "'.$url.'" -O temp/'.$sanurl.'/a.zip');
-      exec("unzip temp/".$sanurl.'/a.zip -d temp/'.$sanurl);
+      // jC --> dont create subdirs, case insensitive 
+      exec("unzip -jC temp/".$sanurl.'/a.zip -d temp/'.$sanurl);
+      exec("mv temp/".$sanurl."/*.rom* temp/".$sanurl."/a.rom");   /**/
+      exec("rm temp/".$sanurl."/a.zip");  
     }
-
   }
 
-//$file_url = 'http://www.myremoteserver.com/file.exe';
-//header('Content-Type: application/octet-stream');
-//header("Content-Transfer-Encoding: Binary"); 
-//header("Content-disposition: attachment; filename=\"" . basename($url) . "\""); 
-//readfile($url); 
-
+  //Redirect the file to GR8NET
+  $file_url = 'http://glufke.ddns.net:8081/proxygr8/temp/'.$sanurl.'/a.rom';
+  header('Content-Type: application/octet-stream');
+  header("Content-Transfer-Encoding: Binary"); 
+  header("Content-disposition: attachment; filename=\"" . basename($file_url) . "\""); 
+  readfile($file_url); 
 
   echo $url;
 }
